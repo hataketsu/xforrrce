@@ -143,9 +143,9 @@ class XforceGame(arcade.Window):
             KeyBoardPress.is_left = True
         elif symbol == arcade.key.RIGHT:
             KeyBoardPress.is_right = True
-        elif symbol == arcade.key.Q:
+        elif symbol == arcade.key.ESCAPE:
             arcade.close_window()
-        if symbol == arcade.key.ESCAPE:
+        if symbol == arcade.key.SPACE:
             bullet = Bullet(self.tank.center_x, self.tank.center_y)
             bullet.change_x = self.tank.fire_direction[0] * 3
             bullet.change_y = self.tank.fire_direction[1] * 3

@@ -5,7 +5,7 @@ from config import CELL_WIDTH
 
 class Resource:
     tank_textures = arcade.load_spritesheet(
-        "res/img/tank1.png", CELL_WIDTH, CELL_WIDTH, 1, 4
+        "res/img/tank4.png", CELL_WIDTH, CELL_WIDTH, 1, 4
     )
     explo1_textures = arcade.load_spritesheet("res/img/explo1.png", 16, 16, 1, 5)
     map_textures = arcade.load_spritesheet(
