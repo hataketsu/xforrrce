@@ -19,7 +19,6 @@ class Direction:
     stand = Vec2(0, 0)
 
 
-
 class KeyBoardPress:
     is_up = False
     is_down = False

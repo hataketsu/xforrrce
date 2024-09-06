@@ -5,7 +5,9 @@ from resource import Resource
 
 class Bullet(Sprite):
     def __init__(self, center_x, center_y):
-        super().__init__(texture=Resource.shot_textures[0], center_x=center_x, center_y=center_y)
+        super().__init__(
+            texture=Resource.shot_textures[0], center_x=center_x, center_y=center_y
+        )
         self.textures = Resource.shot_textures
         self.cur_texture_index = 0
         self.cur_texture = self.textures[self.cur_texture_index]
