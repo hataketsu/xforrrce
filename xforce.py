@@ -9,11 +9,11 @@ from entities.explosion import Explosion
 from entities.message import Message
 from entities.objects import ID_TO_TILE, TileType
 from entities.sentry import Sentry
+from entities.ship import Ship
 from entities.spot import Spot
 from entities.tank import Tank
 from font import FSSS_FONT
 from map import MapInfo
-from resource import Resource
 
 
 class XforceGame(arcade.Window):
@@ -32,7 +32,7 @@ class XforceGame(arcade.Window):
         self.physics_engine = None
         self.map_width = 0
         self.map_height = 0
-        self.map_index = 30
+        self.map_index = 28
         self.key_map = {
             arcade.key.UP: False,
             arcade.key.DOWN: False,
@@ -71,11 +71,14 @@ class XforceGame(arcade.Window):
         self.tank = Tank(window=self)
         self.scene.add_sprite("tank", self.tank)
         for i in range(7):
-            self.scene.add_sprite("cloud", Cloud(
-                self,
-                center_x=random.randint(0, self.map_width),
-                center_y=random.randint(0, self.map_height),
-            ))
+            self.scene.add_sprite(
+                "cloud",
+                Cloud(
+                    self,
+                    center_x=random.randint(0, self.map_width),
+                    center_y=random.randint(0, self.map_height),
+                ),
+            )
         for sprite in self.scene["ground"]:
             if "tile_id" not in sprite.properties:
                 continue
@@ -94,6 +97,10 @@ class XforceGame(arcade.Window):
                     sprite.remove_from_sprite_lists()
                     sentry = Sentry(self, sprite.center_x, sprite.center_y)
                     self.scene.add_sprite("enemies", sentry)
+                elif tile_object.name == "ship":
+                    sprite.remove_from_sprite_lists()
+                    ship = Ship(self, sprite.center_x, sprite.center_y)
+                    self.scene.add_sprite("enemies", ship)
                 else:
                     self.scene.add_sprite("destructible", sprite)
             elif tile_object.tile_type == TileType.INDESTRUCTIBLE:
@@ -147,15 +154,13 @@ class XforceGame(arcade.Window):
         self.clear()
         self.camera.use()
         self.scene.draw(filter=gl.NEAREST)
-        self.tank.draw_hp()
-
+        self.tank.draw_custom()
+        for enemy in self.scene["enemies"]:
+            enemy.draw_custom()
         for message in self.messages:
             message.draw()
-            if message.time_to_live <0:
+            if message.time_to_live < 0:
                 self.messages.remove(message)
-
-        self.gui_camera.use()
-        FSSS_FONT.draw(f"HP: {self.tank.hp}", 10, 10 , 4)
 
         # for sprite in self.scene["ground"]:
         #     if "tile_id" not in sprite.properties:
@@ -168,6 +173,9 @@ class XforceGame(arcade.Window):
         #         sprite.center_y,
         #         scale=1,
         #     )
+
+        self.gui_camera.use()
+        FSSS_FONT.draw(f"HP: {self.tank.hp}", 10, 10, 4)
 
     def update(self, delta_time):
         self.scene.update()
@@ -184,7 +192,9 @@ class XforceGame(arcade.Window):
                             "explosions", Explosion(bullet.center_x, bullet.center_y)
                         )
                         wall.remove_from_sprite_lists()
-                        self.scene.add_sprite("spots", Spot(wall.center_x, wall.center_y))
+                        self.scene.add_sprite(
+                            "spots", Spot(wall.center_x, wall.center_y)
+                        )
                         break
                 for enemy in self.scene["enemies"]:
                     if arcade.check_for_collision(bullet, enemy):
@@ -193,7 +203,9 @@ class XforceGame(arcade.Window):
                             "explosions", Explosion(bullet.center_x, bullet.center_y)
                         )
                         enemy.hp -= bullet.damage
-                        self.add_message(enemy.center_x, enemy.center_y, f"-{bullet.damage}HP")
+                        self.add_message(
+                            enemy.center_x, enemy.center_y, f"-{bullet.damage}HP"
+                        )
                         break
                 for wall in self.scene["indestructible"]:
                     if arcade.check_for_collision(bullet, wall):
@@ -202,6 +214,20 @@ class XforceGame(arcade.Window):
                             "explosions", Explosion(bullet.center_x, bullet.center_y)
                         )
                         break
+                for bullet2 in self.scene["bullets"]:
+                    if bullet2.enemy:
+                        if arcade.check_for_collision(bullet, bullet2):
+                            bullet.remove_from_sprite_lists()
+                            bullet2.remove_from_sprite_lists()
+                            self.scene.add_sprite(
+                                "explosions",
+                                Explosion(bullet.center_x, bullet.center_y),
+                            )
+                            self.scene.add_sprite(
+                                "explosions",
+                                Explosion(bullet2.center_x, bullet2.center_y),
+                            )
+                            break
             else:
                 if arcade.check_for_collision(bullet, self.tank):
                     bullet.remove_from_sprite_lists()
@@ -209,11 +235,14 @@ class XforceGame(arcade.Window):
                         "explosions", Explosion(bullet.center_x, bullet.center_y)
                     )
                     self.tank.hp -= bullet.damage
-                    self.add_message(self.tank.center_x, self.tank.center_y, f"-{bullet.damage}HP")
+                    self.add_message(
+                        self.tank.center_x, self.tank.center_y, f"-{bullet.damage}HP"
+                    )
                     if self.tank.hp <= 0:
                         self.tank.remove_from_sprite_lists()
                         self.scene.add_sprite(
-                            "explosions", Explosion(self.tank.center_x, self.tank.center_y)
+                            "explosions",
+                            Explosion(self.tank.center_x, self.tank.center_y),
                         )
                 for wall in self.scene["indestructible"]:
                     if arcade.check_for_collision(bullet, wall):
@@ -222,6 +251,7 @@ class XforceGame(arcade.Window):
                             "explosions", Explosion(bullet.center_x, bullet.center_y)
                         )
                         break
+
     def center_camera(self):
         camera_position_x = self.tank.center_x - SCREEN_WIDTH // 2
         min_x = int(-CAMERA_WIDTH / 2 * (ZOOM_SCALE - 1))
@@ -243,12 +273,13 @@ class XforceGame(arcade.Window):
         if symbol == arcade.key.ESCAPE:
             arcade.close_window()
 
-
     def on_key_release(self, symbol: int, modifiers: int):
         self.key_map[symbol] = False
 
     def add_message(self, center_x, center_y, message):
         self.messages.append(Message(center_x, center_y, message))
+
+
 def main():
     window = XforceGame()
     window.setup()

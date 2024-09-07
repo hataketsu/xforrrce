@@ -1,9 +1,8 @@
 import arcade
-from arcade import PhysicsEngineSimple, Scene, Window
+from arcade import PhysicsEngineSimple, Window
 
 from config import CELL_WIDTH, Direction
 from entities.bullet import Bullet
-from font import FSSS_FONT
 from resource import Resource
 
 BAR_WIDTH = int(CELL_WIDTH * 0.8)
@@ -11,11 +10,11 @@ BAR_HEIGHT = 2
 
 
 class Tank(arcade.Sprite):
-    def __init__(self, window:Window):
-        super().__init__(texture=Resource.tank_textures[0])
+    def __init__(self, window: Window):
+        super().__init__(texture=Resource.humer_textures[0])
         self.window = window
         self.scene = window.scene
-        self.textures = Resource.tank_textures
+        self.textures = Resource.humer_textures
         self.center_x = CELL_WIDTH + CELL_WIDTH / 2
         self.center_y = CELL_WIDTH + CELL_WIDTH / 2
         self.direction = Direction.right
@@ -24,6 +23,8 @@ class Tank(arcade.Sprite):
         self.auto_direction_time = 0
         self.hp = 100
         self.cooldown = 0
+        self.sway = True
+        self.sway_cooldown = 0
         self.physics_engine = PhysicsEngineSimple(
             self,
             [
@@ -36,16 +37,28 @@ class Tank(arcade.Sprite):
         self.window.add_message(self.center_x, self.center_y, "Starttt")
 
     def update(self):
-        if self.window.key_map[arcade.key.UP] and not self.window.key_map[arcade.key.DOWN]:
+        if (
+            self.window.key_map[arcade.key.UP]
+            and not self.window.key_map[arcade.key.DOWN]
+        ):
             self.direction = Direction.up
             self.auto_direction = Direction.stand
-        elif self.window.key_map[arcade.key.DOWN] and not self.window.key_map[arcade.key.UP]:
+        elif (
+            self.window.key_map[arcade.key.DOWN]
+            and not self.window.key_map[arcade.key.UP]
+        ):
             self.direction = Direction.down
             self.auto_direction = Direction.stand
-        elif self.window.key_map[arcade.key.RIGHT] and not self.window.key_map[arcade.key.LEFT]:
+        elif (
+            self.window.key_map[arcade.key.RIGHT]
+            and not self.window.key_map[arcade.key.LEFT]
+        ):
             self.direction = Direction.right
             self.auto_direction = Direction.stand
-        elif self.window.key_map[arcade.key.LEFT] and not self.window.key_map[arcade.key.RIGHT]:
+        elif (
+            self.window.key_map[arcade.key.LEFT]
+            and not self.window.key_map[arcade.key.RIGHT]
+        ):
             self.direction = Direction.left
             self.auto_direction = Direction.stand
         else:
@@ -53,28 +66,47 @@ class Tank(arcade.Sprite):
                 self.direction = self.auto_direction
             else:
                 self.direction = Direction.stand
+
+        if self.direction != Direction.stand:
+            self.sway_cooldown -= 1
+            if self.sway_cooldown <= 0:
+                self.sway_cooldown = 20
+                self.sway = not self.sway
+
             #
             # if self.auto_direction_time < time.time():
             #     self.auto_direction_time = time.time() + random.randint(1, 3)
             #     self.auto_direction = random.choice(
             #         [Direction.up, Direction.down, Direction.left, Direction.right, Direction.stand, Direction.stand])
-        self.cooldown -=1
-        if self.window.key_map[arcade.key.SPACE] and self.cooldown <=0:
+        self.cooldown -= 1
+        if self.window.key_map[arcade.key.SPACE] and self.cooldown <= 0:
             self.fire()
             self.cooldown = 20
-
+        self.sway = not self.sway
         if self.direction == Direction.up:
             self.fire_direction = Direction.up
-            self.set_texture(3)
+            if self.sway:
+                self.set_texture(2)
+            else:
+                self.set_texture(3)
         elif self.direction == Direction.down:
             self.fire_direction = Direction.down
-            self.set_texture(1)
+            if self.sway:
+                self.set_texture(6)
+            else:
+                self.set_texture(7)
         elif self.direction == Direction.right:
             self.fire_direction = Direction.right
-            self.set_texture(0)
+            if self.sway:
+                self.set_texture(4)
+            else:
+                self.set_texture(5)
         elif self.direction == Direction.left:
             self.fire_direction = Direction.left
-            self.set_texture(2)
+            if self.sway:
+                self.set_texture(0)
+            else:
+                self.set_texture(1)
         elif self.direction == Direction.stand:
             pass
         self.hit_box = self.texture.hit_box_points
@@ -84,7 +116,7 @@ class Tank(arcade.Sprite):
         self.physics_engine.update()
         super().update()
 
-    def draw_hp(self):
+    def draw_custom(self):
         # Draw HP bar, white background, green bar
         arcade.draw_rectangle_filled(
             self.center_x,

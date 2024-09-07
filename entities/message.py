@@ -13,8 +13,8 @@ class Message:
 
     def draw(self):
         self.time_to_live -= 1
-        self.center_x += 1/2
-        self.center_y += 1/2
+        self.center_x += 1 / 2
+        self.center_y += 1 / 2
         FSSS_FONT.draw(
             self.text,
             self.center_x,

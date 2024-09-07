@@ -4,7 +4,7 @@ from resource import Resource
 
 
 class Bullet(Sprite):
-    def __init__(self, center_x, center_y, damage =10 ,enemy=False):
+    def __init__(self, center_x, center_y, damage=10, enemy=False):
         super().__init__(
             texture=Resource.shot_textures[0], center_x=center_x, center_y=center_y
         )

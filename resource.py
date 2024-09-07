@@ -4,9 +4,13 @@ from config import CELL_WIDTH
 
 
 class Resource:
+    humer_textures = arcade.load_spritesheet(
+        "res/img/humer.png", CELL_WIDTH, CELL_WIDTH, 1, int(216 / 24)
+    )
     tank_textures = arcade.load_spritesheet(
         "res/img/tank4.png", CELL_WIDTH, CELL_WIDTH, 1, 4
     )
+    big_explo_textures = arcade.load_spritesheet("res/img/explo.png", 32, 32, 1, 14)
     explo1_textures = arcade.load_spritesheet("res/img/explo1.png", 16, 16, 1, 5)
     shot_textures = arcade.load_spritesheet("res/img/shot.png", 6, 6, 2, 4)
     spot_textures = arcade.load_spritesheet("res/img/spot.png", 32, 32, 1, 3)
