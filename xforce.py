@@ -1,38 +1,71 @@
-import random
-import time
-
 import arcade
-from arcade import Sprite, TileMap, SpriteList, PhysicsEngineSimple, gl
-from arcade.examples.asteroid_smasher import SCALE
-from arcade.physics_engines import _move_sprite
-from pyglet.math import Vec2
+from arcade import Sprite, TileMap, SpriteList, gl
 
 from config import *
-from entities.bullet import Bullet
 from entities.explosion import Explosion
 from entities.spot import Spot
 from entities.tank import Tank
+from font import FONTSS_FONT, FSSS_FONT
 from resource import Resource
 
 
-class CustomPhysicsEngineSimple(PhysicsEngineSimple):
-    def update(self):
-        return _move_sprite(self.player_sprite, self.walls, ramp_up=True)
+def add_virtual_walls():
+    virtual_walls = SpriteList()
+    for i in range(0, MAP_WIDTH, CELL_WIDTH):
+        virtual_walls.append(
+            Sprite(
+                texture=Resource.map_textures[-1],
+                center_x=i + CELL_WIDTH / 2,
+                center_y=-CELL_WIDTH / 2,
+                image_width=CELL_WIDTH,
+                image_height=CELL_WIDTH,
+            )
+        )
+        virtual_walls.append(
+            Sprite(
+                texture=Resource.map_textures[-1],
+                center_x=i + CELL_WIDTH / 2,
+                center_y=MAP_WIDTH + CELL_WIDTH / 2,
+                image_width=CELL_WIDTH,
+                image_height=CELL_WIDTH,
+            )
+        )
+    for i in range(0, MAP_HEIGHT, CELL_WIDTH):
+        virtual_walls.append(
+            Sprite(
+                texture=Resource.map_textures[-1],
+                center_x=-CELL_WIDTH / 2,
+                center_y=i + CELL_WIDTH / 2,
+                image_width=CELL_WIDTH,
+                image_height=CELL_WIDTH,
+            )
+        )
+        virtual_walls.append(
+            Sprite(
+                texture=Resource.map_textures[-1],
+                center_x=MAP_HEIGHT + CELL_WIDTH / 2,
+                center_y=i + CELL_WIDTH / 2,
+                image_width=CELL_WIDTH,
+                image_height=CELL_WIDTH,
+            )
+        )
+    return virtual_walls
 
 
 class XforceGame(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 
-        self.tile_map: TileMap = None
+        self.tile_map = None
         self.scene = None
         self.tank = None
         self.camera = arcade.Camera()
+        self.gui_camera = arcade.Camera()
         self.camera.scale = 1 / ZOOM_SCALE
         self.physics_engine = None
 
     def setup(self):
-        self.tile_map = arcade.load_tilemap(
+        self.tile_map: TileMap = arcade.load_tilemap(
             "res/map0.tmx",
             layer_options={
                 "obstacles": {"use_spatial_hash": True},
@@ -40,69 +73,34 @@ class XforceGame(arcade.Window):
             },
         )
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
-        self.tank = Tank()
         self.scene.add_sprite_list("spots")
-        self.scene.add_sprite("tank", self.tank)
-        virtual_walls = SpriteList()
-        for i in range(0, MAP_WIDTH, CELL_WIDTH):
-            virtual_walls.append(
-                Sprite(
-                    texture=Resource.map_textures[-1],
-                    center_x=i + CELL_WIDTH / 2,
-                    center_y=-CELL_WIDTH / 2,
-                    image_width=CELL_WIDTH,
-                    image_height=CELL_WIDTH,
-                )
-            )
-            virtual_walls.append(
-                Sprite(
-                    texture=Resource.map_textures[-1],
-                    center_x=i + CELL_WIDTH / 2,
-                    center_y=MAP_WIDTH + CELL_WIDTH / 2,
-                    image_width=CELL_WIDTH,
-                    image_height=CELL_WIDTH,
-                )
-            )
-        for i in range(0, MAP_HEIGHT, CELL_WIDTH):
-            virtual_walls.append(
-                Sprite(
-                    texture=Resource.map_textures[-1],
-                    center_x=-CELL_WIDTH / 2,
-                    center_y=i + CELL_WIDTH / 2,
-                    image_width=CELL_WIDTH,
-                    image_height=CELL_WIDTH,
-                )
-            )
-            virtual_walls.append(
-                Sprite(
-                    texture=Resource.map_textures[-1],
-                    center_x=MAP_HEIGHT + CELL_WIDTH / 2,
-                    center_y=i + CELL_WIDTH / 2,
-                    image_width=CELL_WIDTH,
-                    image_height=CELL_WIDTH,
-                )
-            )
-        self.scene.add_sprite_list("virtual_walls", sprite_list=virtual_walls)
+        self.scene.add_sprite_list("tank")
+        self.scene.add_sprite_list("virtual_walls", sprite_list=add_virtual_walls())
         self.scene.add_sprite_list("bullets")
 
-        self.physics_engine = CustomPhysicsEngineSimple(
-            self.tank, [self.scene["obstacles"], self.scene["water"], virtual_walls]
-        )
+        self.tank = Tank(scene=self.scene)
+        self.scene.add_sprite("tank", self.tank)
 
     def on_draw(self):
         self.clear()
         self.camera.use()
         self.scene.draw(filter=gl.NEAREST)
-        # self.scene.draw_hit_boxes()
+        self.tank.draw_hp()
+        self.gui_camera.use()
+        FSSS_FONT.draw(f"0123456789.,:!?()-'/AB\n"
+                         f"CDEFGHIJKLMNOPQRSTUV\n"
+                         f"WXYZÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬ\n"
+                         f"ÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ<>$%", 15, 10, 6)
 
     def update(self, delta_time):
         self.scene.update()
+        self.update_bullets()
+        self.center_camera()
 
-        self.physics_engine.update()
+    def update_bullets(self):
         for bullet in self.scene["bullets"]:
             for wall in self.scene["obstacles"]:
                 if arcade.check_for_collision(bullet, wall):
-                    print("hit obstacles")
                     bullet.remove_from_sprite_lists()
                     self.scene.add_sprite(
                         "explosions", Explosion(bullet.center_x, bullet.center_y)
@@ -112,13 +110,10 @@ class XforceGame(arcade.Window):
                     break
             for wall in self.scene["virtual_walls"]:
                 if arcade.check_for_collision(bullet, wall):
-                    print("hit virtual wall")
                     bullet.remove_from_sprite_lists()
-                    self.scene.add_sprite(
-                        "explosions", Explosion(bullet.center_x, bullet.center_y)
-                    )
                     break
 
+    def center_camera(self):
         camera_position_x = self.tank.center_x - SCREEN_WIDTH // 2
         min_x = int(-CAMERA_WIDTH / 2 * (ZOOM_SCALE - 1))
         max_x = min_x + MAP_WIDTH - CAMERA_WIDTH
@@ -146,10 +141,7 @@ class XforceGame(arcade.Window):
         elif symbol == arcade.key.ESCAPE:
             arcade.close_window()
         if symbol == arcade.key.SPACE:
-            bullet = Bullet(self.tank.center_x, self.tank.center_y)
-            bullet.change_x = self.tank.fire_direction[0] * 3
-            bullet.change_y = self.tank.fire_direction[1] * 3
-            self.scene.add_sprite("bullets", bullet)
+            self.tank.fire()
 
     def on_key_release(self, symbol: int, modifiers: int):
         if symbol == arcade.key.UP:

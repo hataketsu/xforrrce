@@ -1,3 +1,4 @@
+import arcade
 from arcade import Sprite
 
 from resource import Resource
@@ -12,6 +13,7 @@ class Explosion(Sprite):
         self.cur_texture_index = 0
         self.cur_texture = self.textures[self.cur_texture_index]
         self.time = 0
+        arcade.play_sound(Resource.explode_sound)
 
     def update(self):
         self.time += 1
