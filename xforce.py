@@ -5,13 +5,13 @@ from config import *
 from entities.explosion import Explosion
 from entities.spot import Spot
 from entities.tank import Tank
-from font import FONTSS_FONT, FSSS_FONT
+from font import FSSS_FONT
 from resource import Resource
 
 
-def add_virtual_walls():
+def add_virtual_walls(map_width, map_height, cell_width=CELL_WIDTH):
     virtual_walls = SpriteList()
-    for i in range(0, MAP_WIDTH, CELL_WIDTH):
+    for i in range(0, map_width, CELL_WIDTH):
         virtual_walls.append(
             Sprite(
                 texture=Resource.map_textures[-1],
@@ -25,12 +25,12 @@ def add_virtual_walls():
             Sprite(
                 texture=Resource.map_textures[-1],
                 center_x=i + CELL_WIDTH / 2,
-                center_y=MAP_WIDTH + CELL_WIDTH / 2,
+                center_y=map_height + CELL_WIDTH / 2,
                 image_width=CELL_WIDTH,
                 image_height=CELL_WIDTH,
             )
         )
-    for i in range(0, MAP_HEIGHT, CELL_WIDTH):
+    for i in range(0, map_height, CELL_WIDTH):
         virtual_walls.append(
             Sprite(
                 texture=Resource.map_textures[-1],
@@ -43,7 +43,7 @@ def add_virtual_walls():
         virtual_walls.append(
             Sprite(
                 texture=Resource.map_textures[-1],
-                center_x=MAP_HEIGHT + CELL_WIDTH / 2,
+                center_x=map_width + CELL_WIDTH / 2,
                 center_y=i + CELL_WIDTH / 2,
                 image_width=CELL_WIDTH,
                 image_height=CELL_WIDTH,
@@ -63,19 +63,25 @@ class XforceGame(arcade.Window):
         self.gui_camera = arcade.Camera()
         self.camera.scale = 1 / ZOOM_SCALE
         self.physics_engine = None
+        self.map_width = 0
+        self.map_height = 0
 
     def setup(self):
         self.tile_map: TileMap = arcade.load_tilemap(
-            "res/map0.tmx",
+            "res/map20.tmx",
             layer_options={
                 "obstacles": {"use_spatial_hash": True},
                 "water": {"use_spatial_hash": True},
             },
         )
+        self.map_width = self.tile_map.width * CELL_WIDTH
+        self.map_height = self.tile_map.height * CELL_WIDTH
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
+        self.scene.add_sprite_list("virtual_walls", sprite_list=add_virtual_walls(self.map_width, self.map_height))
+        self.scene.add_sprite_list("obstacles")
+        self.scene.add_sprite_list("water")
         self.scene.add_sprite_list("spots")
         self.scene.add_sprite_list("tank")
-        self.scene.add_sprite_list("virtual_walls", sprite_list=add_virtual_walls())
         self.scene.add_sprite_list("bullets")
 
         self.tank = Tank(scene=self.scene)
@@ -116,11 +122,11 @@ class XforceGame(arcade.Window):
     def center_camera(self):
         camera_position_x = self.tank.center_x - SCREEN_WIDTH // 2
         min_x = int(-CAMERA_WIDTH / 2 * (ZOOM_SCALE - 1))
-        max_x = min_x + MAP_WIDTH - CAMERA_WIDTH
+        max_x = min_x + self.map_width - CAMERA_WIDTH
         camera_position_x = max(min_x, min(camera_position_x, max_x))
         camera_position_y = self.tank.center_y - SCREEN_HEIGHT // 2
         min_y = int(-CAMERA_HEIGHT / 2 * (ZOOM_SCALE - 1))
-        max_y = min_y + MAP_HEIGHT - CAMERA_HEIGHT
+        max_y = min_y + self.map_height - CAMERA_HEIGHT
         camera_position_y = max(min_y, min(camera_position_y, max_y))
         self.camera.move_to(
             Vec2(

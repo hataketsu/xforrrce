@@ -1,5 +1,5 @@
 import arcade
-from arcade import PhysicsEngineSimple
+from arcade import PhysicsEngineSimple, Scene
 
 from config import CELL_WIDTH, KeyBoardPress, Direction
 from entities.bullet import Bullet
@@ -11,7 +11,7 @@ BAR_HEIGHT = 2
 
 
 class Tank(arcade.Sprite):
-    def __init__(self, scene):
+    def __init__(self, scene:Scene):
         super().__init__(texture=Resource.tank_textures[0])
         self.scene = scene
         self.textures = Resource.tank_textures
