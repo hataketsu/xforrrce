@@ -15,10 +15,3 @@ class Direction:
     left = Vec2(-1, 0)
     right = Vec2(1, 0)
     stand = Vec2(0, 0)
-
-
-class KeyBoardPress:
-    is_up = False
-    is_down = False
-    is_left = False
-    is_right = False

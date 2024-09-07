@@ -1,7 +1,7 @@
 import arcade
-from arcade import PhysicsEngineSimple, Scene
+from arcade import PhysicsEngineSimple, Scene, Window
 
-from config import CELL_WIDTH, KeyBoardPress, Direction
+from config import CELL_WIDTH, Direction
 from entities.bullet import Bullet
 from font import FSSS_FONT
 from resource import Resource
@@ -11,9 +11,10 @@ BAR_HEIGHT = 2
 
 
 class Tank(arcade.Sprite):
-    def __init__(self, scene:Scene):
+    def __init__(self, window:Window):
         super().__init__(texture=Resource.tank_textures[0])
-        self.scene = scene
+        self.window = window
+        self.scene = window.scene
         self.textures = Resource.tank_textures
         self.center_x = CELL_WIDTH + CELL_WIDTH / 2
         self.center_y = CELL_WIDTH + CELL_WIDTH / 2
@@ -21,23 +22,30 @@ class Tank(arcade.Sprite):
         self.fire_direction = None
         self.auto_direction = None
         self.auto_direction_time = 0
-        self.hp = 60
+        self.hp = 100
+        self.cooldown = 0
         self.physics_engine = PhysicsEngineSimple(
             self,
-            [self.scene["obstacles"], self.scene["water"], self.scene["virtual_walls"]],
+            [
+                self.scene["destructible"],
+                self.scene["barrier"],
+                self.scene["indestructible"],
+                self.scene["enemies"],
+            ],
         )
+        self.window.add_message(self.center_x, self.center_y, "Starttt")
 
     def update(self):
-        if KeyBoardPress.is_up and not KeyBoardPress.is_down:
+        if self.window.key_map[arcade.key.UP] and not self.window.key_map[arcade.key.DOWN]:
             self.direction = Direction.up
             self.auto_direction = Direction.stand
-        elif KeyBoardPress.is_down and not KeyBoardPress.is_up:
+        elif self.window.key_map[arcade.key.DOWN] and not self.window.key_map[arcade.key.UP]:
             self.direction = Direction.down
             self.auto_direction = Direction.stand
-        elif KeyBoardPress.is_right and not KeyBoardPress.is_left:
+        elif self.window.key_map[arcade.key.RIGHT] and not self.window.key_map[arcade.key.LEFT]:
             self.direction = Direction.right
             self.auto_direction = Direction.stand
-        elif KeyBoardPress.is_left and not KeyBoardPress.is_right:
+        elif self.window.key_map[arcade.key.LEFT] and not self.window.key_map[arcade.key.RIGHT]:
             self.direction = Direction.left
             self.auto_direction = Direction.stand
         else:
@@ -50,6 +58,10 @@ class Tank(arcade.Sprite):
             #     self.auto_direction_time = time.time() + random.randint(1, 3)
             #     self.auto_direction = random.choice(
             #         [Direction.up, Direction.down, Direction.left, Direction.right, Direction.stand, Direction.stand])
+        self.cooldown -=1
+        if self.window.key_map[arcade.key.SPACE] and self.cooldown <=0:
+            self.fire()
+            self.cooldown = 20
 
         if self.direction == Direction.up:
             self.fire_direction = Direction.up
@@ -88,11 +100,10 @@ class Tank(arcade.Sprite):
             BAR_HEIGHT,
             arcade.color.GREEN,
         )
-        FSSS_FONT.draw(f"HP:{self.hp}", self.center_x - 20, self.center_y + 15, 1)
 
     def fire(self):
-        bullet = Bullet(self.center_x, self.center_y)
-        bullet.change_x = self.fire_direction[0] * 3
-        bullet.change_y = self.fire_direction[1] * 3
+        bullet = Bullet(self.center_x, self.center_y, damage=20)
+        bullet.change_x = self.fire_direction[0] * 2
+        bullet.change_y = self.fire_direction[1] * 2
         self.scene.add_sprite("bullets", bullet)
         arcade.play_sound(Resource.fire_sound)

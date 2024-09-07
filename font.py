@@ -27,7 +27,7 @@ class Font:
     def draw(self, text, x_pos, y_pos, scale=1):
         original_x_pos = x_pos
         center_y = y_pos + self.font_height * scale / 2
-        for char in text:
+        for char in str.upper(text):
             if char == "\n":
                 center_y += self.font_height * scale + self.space * scale
                 x_pos = original_x_pos
